@@ -1,0 +1,206 @@
+import { PGlite } from "@electric-sql/pglite";
+import type {
+    Task,
+    Reward,
+    RewardPattern, 
+    Progress,
+    NotionSettings,
+    RewardInput,
+    RewardPatternInput,
+} from "@/types";
+
+let _db: PGlite | null = null;
+
+export async function getDb(): Promise<PGlite> {
+    if(_db) return _db;
+
+    _db = new PGlite("idb://rewardo");
+    await initSchema(_db);
+    return _db;
+}
+
+async function initSchema(db: PGlite): Promise<void> {
+    await db.exec(`
+        CREATE TABLE IF NOT EXISTS tasks (
+        id  TEXT PRIMARY KEY,
+        block_id    TEXT NOT NULL,
+        title   TEXT NOT NULL,
+        is_done BOOLEAN NOT NULL DEFAULT FALSE,
+        position INTEGER NOT NULL
+        );
+        
+        CREATE TABLE IF NOT EXISTS rewards (
+        id  TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        weight  INTEGER NOT NULL DEFAULT 1
+        );
+        
+        CREATE TABLE IF NOT EXISTS reward_patterns (
+        id  TEXT PRIMARY KEY,
+        min_count   INTEGER NOT NULL,
+        max_count   INTEGER NOT NULL
+        );
+        
+        CREATE TABLE IF NOT EXISTS progress (
+        id  INTEGER PRIMARY KEY DEFAULT 1,
+        done_count  INTEGER NOT NULL DEFAULT 0,
+        target_count INTEGER NOT NULL DEFAULT 5
+        );
+        
+        CREATE TABLE IF NOT EXISTS notion_settings (
+        id  INTEGER PRIMARY KEY DEFAULT 1,
+        api_key TEXT NOT NULL DEFAULT '',
+        page_id TEXT NOT NULL DEFAULT ''
+        );
+        `);
+
+        await db.exec(`
+            INSERT INTO progress (id, done_count, target_count)
+            VALUES (1, 0, 5)
+            ON CONFLICT (id) DO NOTHING;
+            
+            INSERT INTO notion_settings (id, api_key, page_id)
+            VALUES (1, '', '')
+            ON CONFLICT (id) DO NOTHING;
+            `);
+}
+
+export async function getTasks(): Promise<Task[]> {
+    const db = await getDb();
+    const result = await db.query<Task>(
+        "SELECT * FROM tasks ORDER BY position ASC"
+    );
+
+    return result.rows.map((row) => ({
+        ...row,
+        is_done: Boolean(row.is_done),
+        position: Number(row.position),
+    }));
+}
+
+export async function upsertTasks(tasks: Task[]): Promise<void> {
+    const db = await getDb();
+    for (const t of tasks) {
+        await db.query(
+            `INSERT INTO tasks (id, block_id, title, is_done, position)
+            VALUES ($1, $2, $3, $4, $5)
+            ON CONFLICT (id) DO UPDATE
+                SET block_id = EXCLUDED.block_id,
+                title = EXCLUDED.title,
+                position = EXCLUDED.position`,
+            [t.id, t.block_id, t.title, t.is_done, t.position]
+        );
+    }
+}
+
+export async function updateTaskDone(
+    // この変数を受け取って関数で処理をする
+    id: string, 
+    is_done: boolean
+): Promise<void> {
+    const db = await getDb();
+    await db.query("UPDATE tasks SET is_done = $1 WHERE id = $2", [is_done, id]);
+}
+
+export async function updateTaskPositions(
+    positions: { id: string; position: number }[]
+): Promise<void> {
+    const db = await getDb();
+    for (const { id, position } of positions) {
+        await db.query("UPDATE tasks SET position = $1 WHERE id $2", [
+            position, 
+            id, 
+        ]);
+    }
+}
+
+export async function clearTasks(): Promise<void> {
+    const db = await getDb();
+    await db.query("DELETE FROM tasks");
+}
+
+export async function getRewards(): Promise<Reward[]> {
+    const db = await getDb();
+    const result = await db.query<Reward>("SELECT * FROM rewards");
+    return result.rows;
+}
+
+export async function insertReward(
+    id: string, 
+    input: RewardInput
+): Promise<void> {
+    const db = await getDb();
+    await db.query(
+        "INSERT INTO rewards (id, content, weight) VALUES ($1, $2, $3)",
+        [id, input.content, input.weight]
+    );
+}
+
+export async function deleteReward(id: string): Promise<void> {
+    const db = await getDb();
+    await db.query("DELETE FROM rewards WHERE id = $1", [id]);
+}
+
+export async function getRewardPatterns(): Promise<RewardPattern[]> {
+    const db = await getDb();
+    const result = await db.query<RewardPattern>("SELECT * FROM reward_patterns");
+    return result.rows;
+}
+
+export async function insertRewardPattern(
+    id: string, 
+    input: RewardPatternInput
+): Promise<void> {
+    const db = await getDb();
+    await db.query(
+        "INSERT INTO reward_patterns (id, min_count, max_count) VALUES ($1, $2, $3)",
+        [id, input.min_count, input.max_count]
+    );
+}
+
+export async function deleteRewardPattern(id: string): Promise<void> {
+    const db = await getDb();
+    await db.query("DELETE FROM reward_patterns WHERE id = $1", [id]);
+}
+
+export async function getProgress(): Promise<Progress> {
+    const db = await getDb();
+    const result = await db.query<{ id: number; done_count: number; target_count: number }>(
+        "SELECT * FROM progress WHERE id = 1"
+    );
+
+    const row = result.rows[0];
+    if (!row) return { done_count: 0, target_count: 5};
+    return {
+        done_count: Number(row.done_count ?? 0),
+        target_count: Number(row.target_count ?? 5),
+    };
+}
+
+export async function updateProgress(progress: Progress): Promise<void> {
+    const db = await getDb();
+    await db.query(
+        "UPDATE progress SET done_count = $1, target_count $2 WHERE id = 1",
+        [progress.done_count, progress.target_count]
+    );
+}
+
+export async function getNotionSettings(): Promise<NotionSettings> {
+    const db = await getDb();
+    const result = await db.query<{ id: number; api_key: string; page_id: string }>(
+        "SELECT * FROM notion_settings WHERE id = 1"
+    );
+    const row = result.rows[0];
+    if (!row) return { api_key: "", page_id: "" };
+    return { api_key: row.api_key ?? "", page_id: row.page_id ?? ""};
+}
+
+export async function updateNotionSettings(
+    settings: NotionSettings
+): Promise<void> {
+    const db = await getDb();
+    await db.query(
+        "UPDATE notion_settings SET api_key = $1, page_id = $2 WHERE id = 1",
+        [settings.api_key, settings.page_id]
+    );
+}

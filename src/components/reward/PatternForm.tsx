@@ -39,9 +39,38 @@ export function PatternForm() {
                 onChange={(e) => setMin(Math.max(1, Number(e.target.value)))}
                 min={1}
                 className={cn(
-                    "w-16 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-2"
+                    "w-16 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-2",
+                    "text-sm text-zinc-100 text-center focus:border-indigo-500 focus:outline-none"
                 )}
+                />
+
+                <span className="stext-zinc-500">~</span>
+
+                <label className="text-xs text-zinc-500">最大</label>
+                <input 
+                type="number"
+                value={max}
+                onChange={(e) => setMax(Math.max(1, Number(e.target.value)))}
+                min={1}
+                className={cn(
+                    "w-16 rounded-md border border-zinc-700 bg-zinc-800 px-2 py-2",
+                    "text-sm text-zinc-100 text-center focus-border-indigo-500 focus:outline-none"
+                )}
+                />
+                <span className="text-xs text-zinc-500">タスク完了でご褒美</span>
+
+                <button
+                type="submit"
+                disabled={loading}
+                className={cn(
+                    "ml-auto rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white",
+                    "transition-colors hover:bg-indigo-500 disabled:opacity-50"
+                )}
+                >
+                    追加
+                </button>1
             </div>
+            {error && <p className="text-xs text-red-400">{error}</p>}
         </form>
-    )
+    );
 }

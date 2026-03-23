@@ -25,6 +25,80 @@ export default function RewardSettingPage() {
     };
 
     return (
-        
+        <div className="flex flex-col gap-10">
+          <h1 className="text-xl font-bold text-zinc-100">ご褒美</h1>
+          <section>
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-zinc-500">
+              Notion 連携
+            </h2>
+            <form onSubmit={handoeSaveNotion} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-zinc-400">Notion API Key</label>
+                <input type="passowrd"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                placeholder="secret_..."
+                className={cn(
+                  "rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2", 
+                  "text-sm text-zinc-100 placeholder-zinc-600",
+                  "focus:border-indigo-500 focus:outline-none"
+                )}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-zinc-400">Notion Page ID</label>
+                <input 
+                type="text"
+                value={pageId}
+                onChange={(e) => setPageId(e.target.value)}
+                placeholder="xxxxxxxxx"
+                className={cn(
+                  "rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2",
+                  "text-sm text-zinc-100 placeholder-zinc-600",
+                  "focus:border-indigo-500 focus:outline-none"
+                )}
+                />
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                type="submit"
+                disabled={saving || !isDbReady}
+                className={cn(
+                  "rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white",
+                  "transition-colors hover:bg-indigo-500 disabled:opacity-50"
+                )}
+                >
+                  {saving ? "保存中..." : "保存n"}
+                </button>
+                {saved && (
+                  <span className="tedt-xs text-emerald-400">保存しました</span>
+                )}
+              </div>
+            </form>
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-sm font-semibold uppercasetracking-widest text-zinc-500">
+              ご褒美
+            </h2>
+            <div className="flex flex-col gap-4">
+              <RewardForm />
+              <RewardList />
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-zinc-500">
+              ご褒美パターン
+            </h2> 
+            <p className="mb-3 text-xs text-zinc-500">
+              何タスク完了したらご褒美を出すのか「範囲」を登録します。複数登録するとランダムに選ばれます。
+            </p>
+            <div className="flex flex-col gap-4">
+              <PatternForm />
+              <PatternList />
+            </div>
+          </section>
+        </div>
     );
 }

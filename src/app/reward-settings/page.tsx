@@ -31,7 +31,7 @@ export default function RewardSettingPage() {
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-zinc-500">
               Notion 連携
             </h2>
-            <form onSubmit={handoeSaveNotion} className="flex flex-col gap-3">
+            <form onSubmit={handleSaveNotion} className="flex flex-col gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-zinc-400">Notion API Key</label>
                 <input type="passowrd"
